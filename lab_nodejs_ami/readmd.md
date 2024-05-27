@@ -4,34 +4,17 @@ Start an EC2 instance
 
 - allow SSH from anywhere
 - choose existing key pair `clf-01.pem`
-- allow HTTP traffic from internet
+- allow HTTP traffic from internet (port 80)
 
 SSH into the instance and set up software
 
-```bash
-ssh -i "clf-01.pem" ec2-user@ec2-3-80-81-206.compute-1.amazonaws.com
-
-sudo yum update -y
-
-# add rule to the PREROUTING chain
-# nat table is used for Network Address Translation
-# eth0 is the network interface where the rule will apply
-# destination port 80 for HTTP traffic
-# redirect to 8080
-sudo yum install iptables -y
-sudo iptables --version
-sudo iptables -A PREROUTING -t nat -i eth0 -p tcp --dport 80 -j REDIRECT --to-port 8080
-
-sudo iptables -t nat -L PREROUTING -v -n
-
-# accept input (source port) and output (destination port) on port 80
-sudo iptables -A INPUT -p tcp -m tcp --sport 80 -j ACCEPT
-sudo iptables -A OUTPUT -p tcp -m tcp --dport 80 -j ACCEPT
-```
+Instead of messing with iptables, we use `sudo su -` which allows us to start the app on port 80.
 
 install nvm, clone code, and start server
 
 ```bash
+sudo su -
+
 curl -o- https://raw.githubusercontent.com/creationix/nvm/v0.34.0/install.sh | bash
 export NVM_DIR="/home/ec2-user/.nvm"
 
@@ -45,36 +28,28 @@ sudo yum install git -y
 git --version
 
 # pull sample code
-git clone https://github.com/shawlu95/aws-certification.git
+git clone https://github.com/shawlu95/aws-certifications.git
 cd aws-certifications/lab_nodejs_ami
 npm install
 
-# listening on 8080
-# npm start
-# kill -9 $(lsof -t -i:8080)
+# listening on 80
+npm start
+kill -9 $(lsof -t -i:80)
 
-# start server and print debug log
-DEBUG=node-js-sample:* npm start
 ```
-
-We have a nodejs app listening on 8080. But we are accepting traffic on port 80. The ip table redirects traffic from 80 to 8080.
 
 Go to public IP and access the app
 
 ## Debug
 
 ```bash
-# Ensure that your Node.js application is running and listening on port 8080:
-netstat -tuln | grep 8080
+# Ensure that your Node.js application is running and listening on port 80:
+netstat -tuln | grep 80
 
 # test app is running, from SSH shell
-curl http://localhost:8080
+curl http://localhost:80
 
-curl http://3.95.59.134:8080
-
-# Review all iptables rules to ensure they are set up correctly:
-sudo iptables -t nat -L -v -n
-sudo iptables -L -v -n
+curl http://34.228.71.12:80
 ```
 
 ## Create AMI
